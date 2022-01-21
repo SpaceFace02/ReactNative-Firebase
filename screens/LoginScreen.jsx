@@ -1,16 +1,49 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { KeyboardAvoidingView } from "react-native";
 import { TextInput } from "react-native";
-import { auth } from "../firebase";
+import { app } from "../firebase";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+} from "firebase/auth";
+import { useNavigation } from "@react-navigation/native";
+import { LogBox } from "react-native";
+
+LogBox.ignoreAllLogs();
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const auth = getAuth(app);
+
+  const navigation = useNavigation();
+  //   We want the auth state change to reflect in our app, whenever state changes
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        navigation.replace("Home");
+      }
+    });
+
+    // Clean up the listener when the component unmounts. When we leave the screen, we want to remove the listener, once we reach the home page.
+    return unsubscribe;
+  }, []);
 
   const handleRegister = () => {
-    auth
-      .createUserWithEmailAndPassword(email, password)
+    createUserWithEmailAndPassword(auth, email, password)
+      .then((userCredentials) => {
+        const user = userCredentials.user;
+        console.log(user.email);
+      })
+      .catch((error) => {
+        alert(error.message);
+      });
+  };
+
+  const handleLogin = () => {
+    signInWithEmailAndPassword(auth, email, password)
       .then((userCredentials) => {
         const user = userCredentials.user;
         console.log(user.email);
@@ -39,7 +72,7 @@ const LoginScreen = () => {
       </View>
 
       <View style={styles.buttonWrapper}>
-        <TouchableOpacity onPress={() => {}} style={styles.button}>
+        <TouchableOpacity onPress={() => handleLogin()} style={styles.button}>
           <Text style={styles.buttonText}>Login</Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -55,7 +88,7 @@ const LoginScreen = () => {
 
 export default LoginScreen;
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   container: {
     marginTop: 70,
     display: "flex",
